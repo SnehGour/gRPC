@@ -56,14 +56,15 @@ public class TodoService : TodoIt.TodoItBase
 
         throw new RpcException(new Status(StatusCode.NotFound, "Data Not Found"));
     }
-    public override async Task<GetAllResponse> ListTodo(GetAllRequest request, ServerCallContext context)
+    public override async Task<GetAllResponse> ListToDo(GetAllRequest request, ServerCallContext context)
     {
         var response = new GetAllResponse();
         var itemList = await _context.ToDoItems.ToListAsync();
 
         foreach (var item in itemList)
         {
-            response.ToDo.Add(new ReadTodoResponse{
+            response.ToDo.Add(new ReadTodoResponse
+            {
                 Id = item.Id,
                 Title = item.Title,
                 Description = item.Description,
@@ -74,5 +75,50 @@ public class TodoService : TodoIt.TodoItBase
         return await Task.FromResult(response);
     }
 
-    
+    public override async Task<UpdateToDoResponse> UpdateToDo(UpdateToDoRequest request, ServerCallContext context)
+    {
+
+        if (request.Id <= 0) throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid Argument"));
+
+        var item = await _context.ToDoItems.FirstOrDefaultAsync(x => x.Id == request.Id);
+
+        if (item != null)
+        {
+            item.Description = request.Description;
+            item.Title = request.Title;
+            item.ToDoStatus = request.ToDoStatus;
+
+            await _context.SaveChangesAsync();
+            return await Task.FromResult(new UpdateToDoResponse
+            {
+                Id = item.Id
+            });
+        }
+
+        throw new RpcException(new Status(StatusCode.NotFound, "Data Not Found"));
+    }
+
+    public override async Task<DeleteToDoResponse> DeleteToDo(DeleteToDoRequest request, ServerCallContext context)
+    {
+        if (request.Id <= 0) throw new RpcException(new Status(StatusCode.InvalidArgument, "Invalid Argument"));
+
+        var item = await _context.ToDoItems.FirstOrDefaultAsync(x => x.Id == request.Id);
+
+        if (item != null)
+        {
+
+            var res =  _context.ToDoItems.Remove(item);
+            if(res != null) 
+            {
+               await _context.SaveChangesAsync();
+            }
+
+            return await Task.FromResult(new DeleteToDoResponse
+            {
+                Id = item.Id
+            });
+        }
+
+        throw new RpcException(new Status(StatusCode.NotFound, "Data Not Found"));
+    }
 }
